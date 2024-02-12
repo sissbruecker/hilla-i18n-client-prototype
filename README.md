@@ -1,51 +1,113 @@
-# Custom project from Hilla
+# hilla-i18n-prototype
 
-This project can be used as a starting point to create your own Hilla application with Spring Boot.
-It contains all the necessary configuration and some placeholder files to get you started.
+Prototype implementation for a client-side I18n solution for Hilla.
 
-## Running the application
+- Based on signals
+- Simple API using only an imported `translate` function
+- Allows to change language on the fly
+- Loads initial translations for browser language, last used language or explicitly configured language
+- Caches translations for last used language to improve time to render, updates translations and cache asynchronously after
 
-The project is a standard Maven project. To run it from the command line,
-type `mvnw` (Windows), or `./mvnw` (Mac & Linux), then open
-http://localhost:8080 in your browser.
 
-You can also import the project to your IDE of choice as you would with any
-Maven project.
+**Configuration**
+```tsx
+import { i18n } from "@vaadin/i18n";
 
-## Deploying to Production
+// Load initial translations
+// Uses either last selected language or browser language by default
+i18n.configure();
 
-To create a production build, call `mvnw clean package -Pproduction` (Windows),
-or `./mvnw clean package -Pproduction` (Mac & Linux).
-This will build a JAR file with all the dependencies and front-end resources,
-ready to be deployed. The file can be found in the `target` folder after the build completes.
+// Alternatively specify explicit language, e.g. from user profile
+const profile = await UserEndpoint().getProfile();
+i18n.configure({ language: profile?.language });
+```
 
-Once the JAR file is built, you can run it using
-`java -jar target/myapp-1.0-SNAPSHOT.jar` (NOTE, replace
-`myapp-1.0-SNAPSHOT.jar` with the name of your jar).
+**Block app rendering**
+```tsx
+import { i18n } from "@vaadin/i18n";
 
-## Project structure
+// Block app rendering with top-level await
+await i18n.configure();
 
-<table style="width:100%; text-align: left;">
-  <tr><th>Directory</th><th>Description</th></tr>
-  <tr><td><code>frontend/</code></td><td>Client-side source directory</td></tr>
-  <tr><td>&nbsp;&nbsp;&nbsp;&nbsp;<code>index.html</code></td><td>HTML template</td></tr>
-  <tr><td>&nbsp;&nbsp;&nbsp;&nbsp;<code>index.ts</code></td><td>Frontend 
-entrypoint, bootstraps a React application</td></tr>
-  <tr><td>&nbsp;&nbsp;&nbsp;&nbsp;<code>routes.tsx</code></td><td>React Router routes definition</td></tr>
-  <tr><td>&nbsp;&nbsp;&nbsp;&nbsp;<code>MainLayout.tsx</code></td><td>Main 
-layout component, contains the navigation menu, uses <a href="https://hilla.dev/docs/react/components/app-layout">
-App Layout</a></td></tr>
-  <tr><td>&nbsp;&nbsp;&nbsp;&nbsp;<code>views/</code></td><td>UI view 
-components</td></tr>
-  <tr><td>&nbsp;&nbsp;&nbsp;&nbsp;<code>themes/</code></td><td>Custom  
-CSS styles</td></tr>
-  <tr><td><code>src/main/java/&lt;groupId&gt;/</code></td><td>Server-side 
-source directory, contains the server-side Java views</td></tr>
-  <tr><td>&nbsp;&nbsp;&nbsp;&nbsp;<code>Application.java</code></td><td>Server entry-point</td></tr>
-</table>
+// Or render placeholder using initialized signal
+i18n.configure();
 
-## Useful links
+function App() {
+  return i18n.initialized.value 
+    ? <RouterProvider />
+    : <Loading />
+}
 
-- Read the documentation at [hilla.dev/docs](https://hilla.dev/docs/).
-- Ask questions on [Stack Overflow](https://stackoverflow.com/questions/tagged/hilla) or join our [Discord channel](https://discord.gg/MYFq5RTbBn).
-- Report issues, create pull requests in [GitHub](https://github.com/vaadin/hilla).
+// Could also be a provider? Only syntax sugar as there is no state involved
+import { I18nProvider } from "@vaadin/i18n";
+
+function App() {
+  return (
+    <I18nProvider fallback={<Loading/>}>
+      <RouterProvider />
+    <I18nProvider />
+  );
+}
+```
+
+**Translate Components**
+```tsx
+// Import translate function, then use it
+// translate accesses signal internally, causing components to 
+// re-render if language changes
+import { translate } from "@vaadin/i18n";
+
+function Form() {
+  return <>
+    <TextField label={translate("form.name.label")} />
+    ...
+  </>
+}
+
+// Side effects or memoizations can use signal specific hooks
+useSignalEffect(() => {
+  document.title = translate("routes.form.pageTitle");
+});
+
+const datePickerI18n = useComputed(() => {
+  const monthNames = translate("vaadin.datePicker.monthNames");
+  ...
+});
+
+// Or use regular hooks with current language signal as dependency
+import { i18n } from "@vaadin/i18n";
+
+useEffect(() => {
+  document.title = translate("routes.form.pageTitle");
+}, [i18n.language.value]);
+
+const datePickerI18n = useMemo(() => {
+  const monthNames = translate("vaadin.datePicker.monthNames");
+  ...
+}, [i18n.language.value]);
+```
+
+**Change language**
+```tsx
+import { i18n } from "@vaadin/i18n";
+
+// Get current language
+// Should be read-only signal or just a getter
+const currentLanguage = i18n.language.value;
+
+// Change language
+i18n.setLanguage("de");
+```
+
+**Global side effects**
+```tsx
+import { translate } from "@vaadin/i18n";
+
+// Need to use signal effect to react to language changes
+effect(() => {
+  document.title = translate("app.name");
+});
+
+// Or just keep these in app-level React components, and use useEffect
+// with current language signal as seen above
+```

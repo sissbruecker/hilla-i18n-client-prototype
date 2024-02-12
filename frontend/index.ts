@@ -1,5 +1,8 @@
-import { createElement } from 'react';
-import { createRoot } from 'react-dom/client';
-import App from './App.js';
+import { createElement } from "react";
+import { createRoot } from "react-dom/client";
+import App from "./App.js";
+import { installAutoSignalTracking } from "@preact/signals-react/runtime";
 
-createRoot(document.getElementById('outlet')!).render(createElement(App));
+installAutoSignalTracking();
+
+createRoot(document.getElementById("outlet")!).render(createElement(App));
