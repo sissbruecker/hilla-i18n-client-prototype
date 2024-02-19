@@ -5,13 +5,14 @@ import { useRouteMetadata } from "Frontend/util/routing.js";
 import { Suspense, useEffect } from "react";
 import { NavLink, Outlet } from "react-router-dom";
 import { LanguageSelect } from "Frontend/components/LanguageSelect";
-import { translate } from "Frontend/i18n";
+import { useI18n } from "Frontend/i18n";
 
 const navLinkClasses = ({ isActive }: any) => {
   return `block rounded-m p-s ${isActive ? "bg-primary-10 text-primary" : "text-body"}`;
 };
 
 export default function MainLayout() {
+  const { translate } = useI18n();
   const routeName = useRouteMetadata()?.name ?? "home";
   const currentTitle = translate(`routes.${routeName}`);
 

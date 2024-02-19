@@ -1,6 +1,7 @@
 import router from "Frontend/routes.js";
 import { RouterProvider } from "react-router-dom";
-import { i18n } from "Frontend/i18n";
+import { i18n, useI18n } from "Frontend/i18n";
+import Placeholder from "Frontend/components/Placeholder";
 
 // Use blocking top level await to initialize i18n before rendering the app
 await i18n.configure({
@@ -17,11 +18,12 @@ export default function App() {
 // Alternatively don't block and show a placeholder until i18n is initialized
 /*
 i18n.configure({
- cache: false,
+  cache: false,
 });
 
 export default function App() {
-  if (!i18n.initialized.value) {
+  const { initialized } = useI18n();
+  if (!initialized) {
     return <Placeholder />;
   }
 

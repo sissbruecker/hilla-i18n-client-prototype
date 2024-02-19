@@ -11,7 +11,7 @@ export class MockBackend implements I18nBackend {
     }
 
     // Fake network delay
-    // await new Promise((resolve) => setTimeout(resolve, 1000));
+    await new Promise((resolve) => setTimeout(resolve, 1000));
 
     const module = await import(`./translations/${language}.json`);
     return module.default;

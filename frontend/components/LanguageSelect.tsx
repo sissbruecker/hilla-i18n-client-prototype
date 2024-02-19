@@ -3,11 +3,11 @@ import {
   SelectChangeEvent,
   SelectItem,
 } from "@hilla/react-components/Select";
-import { i18n, translate } from "Frontend/i18n";
+import { useI18n } from "Frontend/i18n";
 import { useMemo } from "react";
 
 export function LanguageSelect() {
-  const currentLanguage = i18n.language.value;
+  const { translate, language, setLanguage } = useI18n();
 
   // Using regular React hook to react to language changes
   const languageOptions: SelectItem[] = useMemo(() => {
@@ -21,11 +21,11 @@ export function LanguageSelect() {
         value: "de",
       },
     ];
-  }, [currentLanguage]);
+  }, [language]);
 
   const handleChange = (e: SelectChangeEvent) => {
     // Switch language in i18n instance
-    i18n.setLanguage(e.target.value);
+    setLanguage(e.target.value);
   };
 
   return (
@@ -33,7 +33,7 @@ export function LanguageSelect() {
       theme="small"
       label={translate("languageSelect.label")}
       items={languageOptions}
-      value={currentLanguage}
+      value={language}
       onChange={handleChange}
     ></Select>
   );

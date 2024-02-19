@@ -1,15 +1,15 @@
-import { signal } from "@preact/signals-react";
 import { I18nBackend, MockBackend } from "./backend";
 import { I18nStorage } from "./storage";
 import type { I18nOptions, Translations } from "./types";
+import { useEffect, useMemo, useState } from "react";
 
-export class I18n {
+export class I18n extends EventTarget {
   private backend: I18nBackend = new MockBackend();
   private storage: I18nStorage = new I18nStorage();
 
-  private _translations = signal<Translations>({});
-  private _language = signal<string | undefined>(undefined);
-  private _initialized = signal<boolean>(false);
+  private _translations: Translations = {};
+  private _language: string | undefined = undefined;
+  private _initialized = false;
 
   async configure(options?: I18nOptions) {
     const initialLanguage = this.determineInitialLanguage(options);
@@ -19,13 +19,14 @@ export class I18n {
       const cachedTranslations = this.storage.getCachedTranslations();
       if (cachedTranslations?.language === initialLanguage) {
         console.debug("I18N: Using cached translations");
-        this._translations.value = cachedTranslations.translations;
+        this._translations = cachedTranslations.translations;
         // Refresh translations asynchronously
         this.loadTranslations(initialLanguage).then(() => {
           console.debug("I18N: Done refreshing translations from backend");
         });
-        this._language.value = initialLanguage;
-        this._initialized.value = true;
+        this._language = initialLanguage;
+        this._initialized = true;
+        this.dispatchChange();
         return;
       }
     }
@@ -33,8 +34,9 @@ export class I18n {
     // Otherwise load translations synchronously
     console.debug("I18N: Loading translations from backend");
     await this.loadTranslations(initialLanguage);
-    this._language.value = initialLanguage;
-    this._initialized.value = true;
+    this._language = initialLanguage;
+    this._initialized = true;
+    this.dispatchChange();
   }
 
   private determineInitialLanguage(options?: I18nOptions): string {
@@ -70,8 +72,9 @@ export class I18n {
   private async loadTranslations(newLanguage: string) {
     try {
       const newTranslations = await this.backend.loadTranslations(newLanguage);
-      this._translations.value = newTranslations;
+      this._translations = newTranslations;
       this.storage.setCachedTranslations(newLanguage, newTranslations);
+      this.dispatchChange();
     } catch (e) {
       // TODO proper error handling, maybe allow developer to hook into this
       console.error("Failed to load translations", e);
@@ -80,21 +83,45 @@ export class I18n {
 
   async setLanguage(newLanguage: string) {
     // Skip if the language didn't change
-    if (newLanguage === this._language.value) {
+    if (newLanguage === this._language) {
       return;
     }
     await this.loadTranslations(newLanguage);
-    this._language.value = newLanguage;
+    this._language = newLanguage;
     this.storage.setLastUsedLanguage(newLanguage);
+    this.dispatchChange();
   }
 
   translate(key: string) {
-    return this._translations.value[key] || key;
+    return this._translations[key] || key;
+  }
+
+  private dispatchChange() {
+    this.dispatchEvent(new Event("change"));
   }
 }
 
 export const i18n = new I18n();
 
-export function translate(key: string) {
-  return i18n.translate(key);
+export function useI18n() {
+  const [update, setUpdate] = useState(0);
+
+  useEffect(() => {
+    const handleChange = () => {
+      setUpdate((prev) => prev + 1);
+    };
+    i18n.addEventListener("change", handleChange);
+    return () => {
+      i18n.removeEventListener("change", handleChange);
+    };
+  }, [i18n]);
+
+  return useMemo(() => {
+    return {
+      translate: i18n.translate.bind(i18n),
+      setLanguage: i18n.setLanguage.bind(i18n),
+      language: i18n.language,
+      initialized: i18n.initialized,
+    };
+  }, [update]);
 }
