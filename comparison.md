@@ -2,7 +2,6 @@
 
 ## Configuration
 
-
 **Signals / Hook**
 
 ```tsx
@@ -40,7 +39,7 @@ function App() {
 **Hook**
 
 ```tsx
-import { i18n, useI18n } from "@vaadin/i18n";
+import {i18n, useI18n} from "@vaadin/i18n";
 
 // Block app rendering with top-level await
 await i18n.configure();
@@ -49,10 +48,19 @@ await i18n.configure();
 i18n.configure();
 
 function App() {
-    const { initialized } = useI18n();
+    const {initialized} = useI18n();
     return initialized
-        ? <RouterProvider />
-        : <Loading />
+        ? <RouterProvider/>
+        : <Loading/>
+}
+
+// Or use suspense, make hook suspend until initialized
+function App() {
+    return (
+      <Suspense fallback={<Loading/>}>
+        <RouterProvider/>
+      </Suspense>
+    );
 }
 ```
 
@@ -189,3 +197,20 @@ i18n.addEventListener("language-changed", () => {
 // Or just keep these in app-level React components, and use useEffect
 // with current language as seen above
 ```
+
+## Pros / Cons
+
+**Signals**
+
+- Implementation with global I18n state is straightforward
+- Less verbose, no hooks calls
+- Requires learning new concepts / signals API
+- Support for suspense is unclear
+
+**Hook**
+
+- Integrating global I18n state with hooks requires a bit more effort
+- Use of `useI18n` hook is slightly more verbose
+- No new concepts / APIs to learn
+- Aligns better with existing API like `useForm`
+- Should be easy to support suspense
